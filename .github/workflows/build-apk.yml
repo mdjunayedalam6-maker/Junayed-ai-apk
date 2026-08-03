@@ -1,0 +1,131 @@
+name: Build Debug APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Android Debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Detect Android Project Root
+        id: detect-project
+        run: |
+          GRADLEW_PATH=$(find . -name gradlew -type f | head -n 1)
+          if [ -z "$GRADLEW_PATH" ]; then
+            echo "Error: Gradle wrapper (gradlew) not found anywhere in the repository!" >&2
+            exit 1
+          fi
+          PROJECT_DIR=$(dirname "$GRADLEW_PATH")
+          if [ "$PROJECT_DIR" = "." ]; then
+            PROJECT_DIR="."
+          else
+            PROJECT_DIR=$(echo "$PROJECT_DIR" | sed 's|^\./||')
+          fi
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          echo "Detected Android project root at relative path: $PROJECT_DIR"
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - name: Pre-build Verification
+        run: |
+          echo "Using Android project root: $PROJECT_DIR"
+          cd "$PROJECT_DIR"
+
+          # Verify Gradle wrapper
+          if [ ! -f gradlew ]; then
+            echo "Error: Gradle wrapper executable 'gradlew' not found in $PROJECT_DIR!" >&2
+            exit 1
+          fi
+          if [ ! -f gradle/wrapper/gradle-wrapper.properties ]; then
+            echo "Error: Gradle wrapper properties file not found in $PROJECT_DIR/gradle/wrapper/!" >&2
+            exit 1
+          fi
+
+          # Find and verify application module
+          APP_MODULE_PATH=""
+          for f in $(find . -maxdepth 3 -name "build.gradle*" -not -path "./build.gradle*"); do
+            if grep -E -q "android\.application|com\.android\.application" "$f"; then
+              APP_MODULE_PATH="$f"
+              break
+            fi
+          done
+
+          if [ -z "$APP_MODULE_PATH" ]; then
+            echo "Error: Application module not found (no build.gradle/kts applying the Android application plugin)!" >&2
+            exit 1
+          fi
+
+          APP_MODULE_DIR=$(dirname "$APP_MODULE_PATH" | sed 's|^\./||')
+          echo "Detected application module directory: $APP_MODULE_DIR"
+          echo "APP_MODULE_DIR=$APP_MODULE_DIR" >> "$GITHUB_ENV"
+
+      - name: Clean safe build caches
+        run: |
+          echo "Cleaning safe project-level Gradle and application build caches in $PROJECT_DIR..."
+          cd "$PROJECT_DIR"
+          rm -rf .gradle
+          if [ -n "$APP_MODULE_DIR" ] && [ -d "$APP_MODULE_DIR" ]; then
+            rm -rf "$APP_MODULE_DIR/build"
+          fi
+
+      - name: Generate Debug Keystore
+        run: |
+          cd "$PROJECT_DIR"
+          if [ ! -f debug.keystore ]; then
+            echo "Generating debug.keystore in $PROJECT_DIR..."
+            keytool -genkeypair -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Give Gradle wrapper execution permission
+        run: |
+          chmod +x "$PROJECT_DIR/gradlew"
+
+      - name: Build Debug APK
+        run: |
+          cd "$PROJECT_DIR"
+          ./gradlew assembleDebug --stacktrace --no-daemon
+
+      - name: Locate and Verify Generated APK
+        run: |
+          cd "$PROJECT_DIR"
+          echo "Searching for generated APK files in $APP_MODULE_DIR/build/outputs/apk/..."
+
+          # Ensure directories exist
+          if [ ! -d "$APP_MODULE_DIR/build/outputs/apk" ]; then
+            echo "Error: APK output directory $APP_MODULE_DIR/build/outputs/apk does not exist!" >&2
+            exit 1
+          fi
+
+          APK_FILES=$(find "$APP_MODULE_DIR/build/outputs/apk" -name "*.apk" -type f)
+          if [ -z "$APK_FILES" ]; then
+            echo "Error: No generated APK files found in $APP_MODULE_DIR/build/outputs/apk!" >&2
+            exit 1
+          fi
+
+          echo "Found APK file(s):"
+          echo "$APK_FILES"
+
+          # Print size of each APK
+          while IFS= read -r file; do
+            echo "APK: $file ($(du -sh "$file" | cut -f1))"
+          done <<< "$APK_FILES"
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-app-debug-apk
+          path: |
+            ${{ env.PROJECT_DIR }}/${{ env.APP_MODULE_DIR }}/build/outputs/apk/debug/**/*.apk
+          if-no-files-found: error
