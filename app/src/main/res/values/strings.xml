@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">Junaid AI Browser</string>
+    <string name="tagline">বিশ্বের ইন্টারনেট, এখন আপনার স্মার্ট বাংলা ব্রাউজারে</string>
+    
+    <!-- Navigation & Tabs -->
+    <string name="nav_home">হোম</string>
+    <string name="nav_browser">ব্রাউজার</string>
+    <string name="nav_ai_assistant">এআই সহকারী</string>
+    <string name="nav_history">ইতিহাস</string>
+    <string name="nav_bookmarks">বুকমার্ক</string>
+    <string name="nav_downloads">ডাউনলোড</string>
+    <string name="nav_profile">প্রোফাইল</string>
+    <string name="nav_settings">সেটিংস</string>
+    
+    <!-- Search Bar -->
+    <string name="search_hint">ইউআরএল লিখুন বা যেকোনো কিছু খুঁজুন...</string>
+    <string name="voice_search">ভয়েস সার্চ</string>
+    <string name="ai_explain">এআই ব্যাখ্যা</string>
+    
+    <!-- Quick Shortcuts -->
+    <string name="quick_sites">জনপ্রিয় ওয়েবসাইট</string>
+    <string name="trending_news">ট্রেন্ডিং সংবাদ</string>
+    <string name="recommended_content">সুপারিশকৃত কনটেন্ট</string>
+    
+    <!-- AI Features -->
+    <string name="ai_summarize_page">এই পৃষ্ঠা সংক্ষেপে বলো</string>
+    <string name="ai_explain_simple">সহজ ভাষায় বুঝিয়ে বলো</string>
+    <string name="ai_translate_bn">বাংলা অনুবাদ করো</string>
+    <string name="ai_prompt_hint">এআই কে যেকোনো প্রশ্ন করুন (বাংলায়)...</string>
+</resources>

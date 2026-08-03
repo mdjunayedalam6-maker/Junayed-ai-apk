@@ -1,0 +1,6 @@
+{
+  "name": "Junaid AI Browser",
+  "description": "বিশ্বের ইন্টারনেট, এখন আপনার স্মার্ট বাংলা ব্রাউজারে - Smart AI-powered web browser, Bengali content platform, and Gemini assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
